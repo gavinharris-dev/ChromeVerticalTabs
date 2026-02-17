@@ -3,7 +3,7 @@
   "name": "Vertical Tabs",
   "version": "1.0",
   "description": "Vertical tab manager with group management in the side panel",
-  "permissions": ["tabs", "tabGroups", "sidePanel", "storage"],
+  "permissions": ["tabs", "tabGroups", "sidePanel", "storage", "sessions"],
   "background": {
     "service_worker": "background.js"
   },

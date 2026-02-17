@@ -17,6 +17,17 @@ async function getFullState() {
     }
   }
 
+  const sessions = await chrome.sessions.getRecentlyClosed({ maxResults: 25 });
+  const recentlyClosed = sessions
+    .filter(s => s.tab)
+    .map(s => ({
+      sessionId: s.tab.sessionId,
+      title: s.tab.title,
+      url: s.tab.url,
+      favIconUrl: s.tab.favIconUrl,
+      lastModified: s.lastModified,
+    }));
+
   return {
     tabs: tabs.map(t => ({
       id: t.id,
@@ -36,6 +47,7 @@ async function getFullState() {
       collapsed: g.collapsed,
     })),
     primaryGroupIds: [...primaryGroupIds],
+    recentlyClosed,
   };
 }
 
@@ -66,6 +78,10 @@ chrome.tabs.onDetached.addListener(broadcastState);
 chrome.tabGroups.onCreated.addListener(broadcastState);
 chrome.tabGroups.onUpdated.addListener(broadcastState);
 chrome.tabGroups.onRemoved.addListener(broadcastState);
+
+// --- Session event listeners ---
+
+chrome.sessions.onChanged.addListener(broadcastState);
 
 // --- Message handlers ---
 
@@ -127,6 +143,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === 'ungroupTab') {
     chrome.tabs.ungroup(msg.tabId);
+    return;
+  }
+
+  if (msg.type === 'restoreSession') {
+    chrome.sessions.restore(msg.sessionId);
     return;
   }
 });

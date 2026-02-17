@@ -15,6 +15,7 @@ let selectedColor = 'blue';
 
 let currentState = null;
 let collapsedGroups = new Set(); // local UI collapse state (mirrors Chrome's)
+let historyCollapsed = false;
 let scrollTop = 0;
 let draggedTabId = null;
 let searchQuery = '';
@@ -134,11 +135,65 @@ function renderTabs() {
   }
   fragment.appendChild(ungroupedZone);
 
+  // Recently Closed section
+  const recentlyClosed = currentState.recentlyClosed || [];
+  if (recentlyClosed.length > 0) {
+    const historySection = document.createElement('div');
+    historySection.className = 'history-section';
+
+    const historyHeader = document.createElement('div');
+    historyHeader.className = 'history-header' + (historyCollapsed ? ' collapsed' : '');
+    historyHeader.innerHTML = `
+      <span class="group-collapse-icon">▼</span>
+      <span class="history-icon">🕐</span>
+      <span class="group-title">Recently Closed</span>
+      <span class="group-count">${recentlyClosed.length}</span>
+    `;
+    historySection.appendChild(historyHeader);
+
+    const historyItems = document.createElement('div');
+    historyItems.className = 'history-items' + (historyCollapsed ? ' collapsed' : '');
+
+    for (const item of recentlyClosed) {
+      historyItems.appendChild(createHistoryElement(item));
+    }
+
+    historySection.appendChild(historyItems);
+    fragment.appendChild(historySection);
+  }
+
   tabList.innerHTML = '';
   tabList.appendChild(fragment);
 
   // Restore scroll
   tabList.scrollTop = scrollTop;
+}
+
+function formatTimeAgo(timestamp) {
+  const seconds = Math.floor(Date.now() / 1000 - timestamp);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function createHistoryElement(item) {
+  const el = document.createElement('div');
+  el.className = 'tab-item history-item';
+  el.dataset.sessionId = item.sessionId;
+
+  const faviconHtml = getFaviconHtml(item);
+
+  el.innerHTML = `
+    ${faviconHtml}
+    <span class="tab-title">${escapeHtml(item.title || item.url || 'Closed Tab')}</span>
+    <span class="history-badge">${formatTimeAgo(item.lastModified)}</span>
+  `;
+
+  return el;
 }
 
 function createTabElement(tab, grouped, groupColor) {
@@ -216,11 +271,26 @@ tabList.addEventListener('click', (e) => {
     return;
   }
 
-  // Tab click — activate
+  // History header collapse/expand
+  const historyHeader = e.target.closest('.history-header');
+  if (historyHeader) {
+    historyCollapsed = !historyCollapsed;
+    historyHeader.classList.toggle('collapsed', historyCollapsed);
+    const items = historyHeader.nextElementSibling;
+    if (items) items.classList.toggle('collapsed', historyCollapsed);
+    return;
+  }
+
+  // Tab click — activate or restore
   const tabItem = e.target.closest('.tab-item');
   if (tabItem) {
-    const tabId = parseInt(tabItem.dataset.tabId);
-    chrome.runtime.sendMessage({ type: 'activateTab', tabId });
+    if (tabItem.classList.contains('history-item')) {
+      const sessionId = tabItem.dataset.sessionId;
+      chrome.runtime.sendMessage({ type: 'restoreSession', sessionId });
+    } else {
+      const tabId = parseInt(tabItem.dataset.tabId);
+      chrome.runtime.sendMessage({ type: 'activateTab', tabId });
+    }
     return;
   }
 });
@@ -330,7 +400,10 @@ newGroupNameInput.addEventListener('keydown', (e) => {
 
 tabList.addEventListener('dragstart', (e) => {
   const tabItem = e.target.closest('.tab-item');
-  if (!tabItem) return;
+  if (!tabItem || tabItem.classList.contains('history-item')) {
+    e.preventDefault();
+    return;
+  }
   draggedTabId = parseInt(tabItem.dataset.tabId);
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', draggedTabId);
@@ -398,12 +471,17 @@ function hideSearch() {
 
 function applySearch() {
   searchQuery = searchInput.value.toLowerCase();
-  const items = tabList.querySelectorAll('.tab-item');
+  const items = tabList.querySelectorAll('.tab-item:not(.history-item)');
+  const historyItems = tabList.querySelectorAll('.history-item');
   const groupHeaders = tabList.querySelectorAll('.group-header');
   const groupTabContainers = tabList.querySelectorAll('.group-tabs');
+  const historySection = tabList.querySelector('.history-section');
+  const historyHeader = tabList.querySelector('.history-header');
+  const historyItemsContainer = tabList.querySelector('.history-items');
 
   if (!searchQuery) {
     items.forEach(el => el.classList.remove('search-hidden'));
+    historyItems.forEach(el => el.classList.remove('search-hidden'));
     groupHeaders.forEach(el => el.classList.remove('search-hidden'));
     groupTabContainers.forEach(el => {
       el.classList.remove('search-hidden');
@@ -411,10 +489,16 @@ function applySearch() {
         el.classList.add('collapsed');
       }
     });
+    if (historySection) historySection.classList.remove('search-hidden');
+    if (historyHeader) historyHeader.classList.remove('search-hidden');
+    if (historyItemsContainer) {
+      historyItemsContainer.classList.remove('search-hidden');
+      historyItemsContainer.classList.toggle('collapsed', historyCollapsed);
+    }
     return;
   }
 
-  // Show/hide individual tabs
+  // Show/hide individual active tabs
   items.forEach(el => {
     const title = el.querySelector('.tab-title')?.textContent?.toLowerCase() || '';
     el.classList.toggle('search-hidden', !title.includes(searchQuery));
@@ -436,7 +520,6 @@ function applySearch() {
       header.classList.remove('search-hidden');
       tabsContainer.classList.remove('search-hidden', 'collapsed');
       if (titleMatch && !hasMatch) {
-        // Group title matches — show all tabs in it
         tabsContainer.querySelectorAll('.tab-item').forEach(el => el.classList.remove('search-hidden'));
       }
     } else {
@@ -444,6 +527,25 @@ function applySearch() {
       tabsContainer.classList.add('search-hidden');
     }
   });
+
+  // Show/hide history items based on search
+  let hasHistoryMatch = false;
+  historyItems.forEach(el => {
+    const title = el.querySelector('.tab-title')?.textContent?.toLowerCase() || '';
+    const matches = title.includes(searchQuery);
+    el.classList.toggle('search-hidden', !matches);
+    if (matches) hasHistoryMatch = true;
+  });
+
+  if (historySection) {
+    historySection.classList.toggle('search-hidden', !hasHistoryMatch);
+  }
+  if (historyHeader) {
+    historyHeader.classList.toggle('search-hidden', !hasHistoryMatch);
+  }
+  if (historyItemsContainer && hasHistoryMatch) {
+    historyItemsContainer.classList.remove('search-hidden', 'collapsed');
+  }
 }
 
 searchInput.addEventListener('input', applySearch);

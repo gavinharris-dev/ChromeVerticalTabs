@@ -483,3 +483,61 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #9aa0a6;
 }
+
+/* Recently Closed section */
+.history-section {
+  border-top: 1px solid #3c4043;
+  margin-top: 4px;
+}
+
+.history-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+  gap: 8px;
+}
+
+.history-header:hover {
+  background: #292a2d;
+}
+
+.history-header.collapsed .group-collapse-icon {
+  transform: rotate(-90deg);
+}
+
+.history-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.history-items.collapsed {
+  display: none;
+}
+
+.history-item {
+  opacity: 0.7;
+}
+
+.history-item:hover {
+  opacity: 1;
+}
+
+.history-badge {
+  font-size: 10px;
+  color: #9aa0a6;
+  background: #3c4043;
+  padding: 1px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.history-section.search-hidden {
+  display: none;
+}
+
+.history-header.search-hidden {
+  display: none;
+}
