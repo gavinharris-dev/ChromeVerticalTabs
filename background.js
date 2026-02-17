@@ -194,7 +194,9 @@ async function getNonPrimaryTabs() {
   const primarySet = new Set(state.primaryGroupIds);
   return state.tabs.filter(t => {
     if (t.pinned) return false;
-    if (t.groupId === -1) return false;
+    // Ungrouped tabs are non-primary
+    if (t.groupId === -1) return true;
+    // Grouped tabs not in a starred/primary group are non-primary
     return !primarySet.has(t.groupId);
   });
 }

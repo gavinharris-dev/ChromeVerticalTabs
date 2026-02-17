@@ -580,11 +580,11 @@ closeNonPrimaryBtn.addEventListener('click', () => {
   chrome.runtime.sendMessage({ type: 'countNonPrimary' }, (response) => {
     const count = response?.count || 0;
     if (count === 0) {
-      alert('No non-primary group tabs to close.');
+      alert('No non-primary tabs to close.');
       return;
     }
     const confirmed = confirm(
-      `Close ${count} tab${count === 1 ? '' : 's'} in non-primary groups?`
+      `Close ${count} non-primary tab${count === 1 ? '' : 's'}? (ungrouped + non-starred groups)`
     );
     if (confirmed) {
       chrome.runtime.sendMessage({ type: 'closeNonPrimary' });
