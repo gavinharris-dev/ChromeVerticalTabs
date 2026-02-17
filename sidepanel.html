@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vertical Tabs</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="header">
+    <h1>Tabs</h1>
+    <div class="header-buttons">
+      <button id="new-group-btn" class="new-group-btn" title="Create new tab group">+</button>
+      <button id="auto-group-btn" class="auto-group-btn" title="Auto-group ungrouped tabs by domain">Auto</button>
+      <button id="close-non-primary" title="Close all tabs in non-primary groups">Close Non-Primary</button>
+    </div>
+  </div>
+  <div id="search-bar" class="search-bar" style="display:none;">
+    <input type="text" id="search-input" class="search-input" placeholder="Search tabs...">
+    <button id="search-clear" class="search-clear" title="Clear search">✕</button>
+  </div>
+  <div id="new-group-form" class="new-group-form" style="display:none;">
+    <input type="text" id="new-group-name" placeholder="Group name" class="new-group-input">
+    <div class="color-picker" id="color-picker"></div>
+    <div class="new-group-actions">
+      <button id="new-group-submit" class="new-group-submit">Create</button>
+      <button id="new-group-cancel" class="new-group-cancel">Cancel</button>
+    </div>
+  </div>
+  <div id="tab-list"></div>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
