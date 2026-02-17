@@ -10,7 +10,9 @@ A Chrome extension that provides a vertical tab manager with group management in
 - **Close non-primary** — Quickly close all tabs that aren't in a primary group
 - **Auto-group by domain** — Automatically group ungrouped tabs by their domain
 - **Drag & drop** — Move tabs between groups or to the ungrouped section
+- **Collapsible panel** — Toggle between full view and icon-only mode; state persists across sessions
 - **Search** — Type-to-search filters tabs and groups in real time
+- **Keyboard shortcut** — Open the side panel with a shortcut (customizable)
 - **Dark theme** — Matches Chrome's dark UI
 
 ## Installation
@@ -31,7 +33,19 @@ A Chrome extension that provides a vertical tab manager with group management in
 - **Click "+"** to create a new group from the active tab
 - **Click "Auto"** to auto-group ungrouped tabs by domain
 - **Click "Close Non-Primary"** to close all tabs outside of primary groups
+- **Click «/»** in the header to toggle collapsed (icon-only) mode — hover favicons to see tab names
 - **Start typing** to search/filter tabs
+
+## Keyboard Shortcut
+
+The extension comes with a suggested shortcut to toggle the side panel:
+
+| Platform      | Default shortcut |
+|---------------|-----------------|
+| macOS         | `Ctrl+B`        |
+| Windows/Linux | `Alt+B`         |
+
+You can customize this (or set your own, e.g. `Cmd+B`) at **`chrome://extensions/shortcuts`**.
 
 ## Requirements
 

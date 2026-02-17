@@ -541,3 +541,105 @@ body {
 .history-header.search-hidden {
   display: none;
 }
+
+/* Collapse toggle button */
+.collapse-toggle-btn {
+  background: none;
+  color: #9aa0a6;
+  border: 1px solid #5f6368;
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.collapse-toggle-btn:hover {
+  background: #3c4043;
+  color: #e8eaed;
+}
+
+/* === Collapsed panel mode === */
+
+body.collapsed .header h1,
+body.collapsed #new-group-btn,
+body.collapsed #auto-group-btn,
+body.collapsed #close-non-primary {
+  display: none;
+}
+
+body.collapsed .header {
+  justify-content: center;
+  padding: 12px 8px;
+}
+
+body.collapsed .header-buttons {
+  gap: 0;
+}
+
+body.collapsed #search-bar,
+body.collapsed #new-group-form {
+  display: none !important;
+}
+
+body.collapsed .ungrouped-label {
+  display: none;
+}
+
+/* Tab items in collapsed mode */
+body.collapsed .tab-item {
+  padding: 6px 0;
+  justify-content: center;
+  gap: 0;
+  transition: padding 0.15s ease;
+}
+
+body.collapsed .tab-item .tab-title,
+body.collapsed .tab-item .tab-close,
+body.collapsed .tab-item .history-badge {
+  display: none;
+}
+
+/* Group headers in collapsed mode */
+body.collapsed .group-header {
+  justify-content: center;
+  padding: 6px 0;
+  gap: 0;
+  border-left-color: transparent;
+  transition: padding 0.15s ease;
+}
+
+body.collapsed .group-header .group-collapse-icon,
+body.collapsed .group-header .group-title,
+body.collapsed .group-header .group-count,
+body.collapsed .group-header .primary-badge,
+body.collapsed .group-header .primary-toggle {
+  display: none;
+}
+
+body.collapsed .group-color-dot {
+  width: 12px;
+  height: 12px;
+}
+
+/* History section in collapsed mode */
+body.collapsed .history-header {
+  justify-content: center;
+  padding: 6px 0;
+  gap: 0;
+}
+
+body.collapsed .history-header .group-collapse-icon,
+body.collapsed .history-header .group-title,
+body.collapsed .history-header .group-count {
+  display: none;
+}
+
+body.collapsed .history-icon {
+  font-size: 14px;
+}

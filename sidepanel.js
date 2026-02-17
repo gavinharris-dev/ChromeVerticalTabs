@@ -9,6 +9,7 @@ const colorPicker = document.getElementById('color-picker');
 const searchBar = document.getElementById('search-bar');
 const searchInput = document.getElementById('search-input');
 const searchClear = document.getElementById('search-clear');
+const collapseToggle = document.getElementById('collapse-toggle');
 
 const GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
 let selectedColor = 'blue';
@@ -19,6 +20,34 @@ let historyCollapsed = false;
 let scrollTop = 0;
 let draggedTabId = null;
 let searchQuery = '';
+let isPanelCollapsed = false;
+
+// --- Panel collapse ---
+
+function applyCollapsedState(collapsed) {
+  isPanelCollapsed = collapsed;
+  document.body.classList.toggle('collapsed', collapsed);
+  collapseToggle.textContent = collapsed ? '»' : '«';
+  collapseToggle.title = collapsed ? 'Expand panel' : 'Collapse to icon view';
+}
+
+collapseToggle.addEventListener('click', () => {
+  isPanelCollapsed = !isPanelCollapsed;
+  applyCollapsedState(isPanelCollapsed);
+  chrome.storage.local.set({ panelCollapsed: isPanelCollapsed });
+
+  if (isPanelCollapsed) {
+    hideSearch();
+    newGroupForm.style.display = 'none';
+  }
+});
+
+// Load persisted collapsed state
+chrome.storage.local.get('panelCollapsed', (result) => {
+  if (result.panelCollapsed) {
+    applyCollapsedState(true);
+  }
+});
 
 // --- Request initial state ---
 
@@ -184,6 +213,7 @@ function createHistoryElement(item) {
   const el = document.createElement('div');
   el.className = 'tab-item history-item';
   el.dataset.sessionId = item.sessionId;
+  el.title = item.title || item.url || 'Closed Tab';
 
   const faviconHtml = getFaviconHtml(item);
 
@@ -206,6 +236,7 @@ function createTabElement(tab, grouped, groupColor) {
   el.className = classes;
   el.dataset.tabId = tab.id;
   el.draggable = true;
+  el.title = tab.title || 'New Tab';
 
   const faviconHtml = getFaviconHtml(tab);
 
@@ -563,7 +594,10 @@ document.addEventListener('keydown', (e) => {
   // Ignore modifier keys and non-printable
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (e.key.length !== 1) return;
+  // Don't activate search when panel is collapsed
+  if (isPanelCollapsed) return;
 
+  e.preventDefault();
   showSearch(e.key);
 });
 
