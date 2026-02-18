@@ -150,7 +150,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.sessions.restore(msg.sessionId);
     return;
   }
+
+  if (msg.type === 'navigateToUrl') {
+    handleNavigateToUrl(msg.url, msg.tabId).then(result => sendResponse(result));
+    return true;
+  }
 });
+
+async function handleNavigateToUrl(url, existingTabId) {
+  const win = await chrome.windows.getLastFocused({ windowTypes: ['normal'] });
+
+  // Try to activate the previously-owned tab by ID
+  if (existingTabId) {
+    try {
+      await chrome.tabs.update(existingTabId, { active: true });
+      return { tabId: existingTabId };
+    } catch {
+      // Tab no longer exists, fall through
+    }
+  }
+
+  // Create a new tab and return its ID
+  const newTab = await chrome.tabs.create({ url, windowId: win.id });
+  return { tabId: newTab.id };
+}
 
 async function handleSetPrimary(groupId, isPrimary) {
   const groups = await chrome.tabGroups.query({});

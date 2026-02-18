@@ -87,6 +87,82 @@ body {
   background: #aecbfa;
 }
 
+/* Fav tabs bar */
+.fav-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid #3c4043;
+  background: #202124;
+  position: sticky;
+  top: 44px;
+  z-index: 9;
+}
+
+.fav-tab-slot {
+  position: relative;
+  flex: 1;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: #2d2e31;
+  transition: background 0.1s;
+  user-select: none;
+}
+
+.fav-tab-slot:hover {
+  background: #3c4043;
+}
+
+.fav-tab-slot img {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  display: block;
+  pointer-events: none;
+}
+
+.fav-tab-slot .fav-favicon-fallback {
+  font-size: 13px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.fav-tab-slot.fav-empty {
+  color: #5f6368;
+  font-size: 16px;
+  font-weight: 300;
+}
+
+.fav-tab-slot.fav-editing {
+  background: #292a2d;
+  border: 1px solid #8ab4f8;
+}
+
+.fav-url-input {
+  position: fixed;
+  z-index: 100;
+  background: #292a2d;
+  border: 1px solid #8ab4f8;
+  border-radius: 6px;
+  color: #e8eaed;
+  font-size: 12px;
+  padding: 5px 8px;
+  outline: none;
+  width: 220px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}
+
+body.collapsed .fav-tabs-bar {
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 4px;
+}
+
 /* Search bar */
 .search-bar {
   display: flex;

@@ -10,9 +10,173 @@ const searchBar = document.getElementById('search-bar');
 const searchInput = document.getElementById('search-input');
 const searchClear = document.getElementById('search-clear');
 const collapseToggle = document.getElementById('collapse-toggle');
+const favTabsBar = document.getElementById('fav-tabs-bar');
 
 const GROUP_COLORS = ['grey', 'blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];
 let selectedColor = 'blue';
+
+// --- Fav tabs ---
+
+const DEFAULT_FAV_TABS = [
+  { url: 'https://mail.google.com' },
+  { url: 'https://t3.chat' },
+  { url: 'https://github.com' },
+  { url: 'https://console.firebase.google.com/u/1' },
+];
+
+let favTabs = DEFAULT_FAV_TABS.map(f => ({ ...f }));
+
+async function loadFavTabs() {
+  const { favTabs: stored } = await chrome.storage.local.get('favTabs');
+  if (stored && Array.isArray(stored) && stored.length === 4) {
+    favTabs = stored;
+  }
+  renderFavTabs();
+}
+
+function saveFavTabs() {
+  chrome.storage.local.set({ favTabs });
+}
+
+function getFavIconSrc(url, tabs) {
+  const normalized = url.replace(/\/$/, '');
+  const match = tabs?.find(t => t.url && t.url.startsWith(normalized));
+  if (match?.favIconUrl && !match.favIconUrl.startsWith('chrome://')) {
+    return match.favIconUrl;
+  }
+  try {
+    const { hostname } = new URL(url);
+    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=32`;
+  } catch {
+    return '';
+  }
+}
+
+function getLiveTitle(url, tabs) {
+  const normalized = url.replace(/\/$/, '');
+  const match = tabs?.find(t => t.url && t.url.startsWith(normalized));
+  return match?.title || url;
+}
+
+function renderFavTabs() {
+  favTabsBar.innerHTML = '';
+  const tabs = currentState?.tabs;
+
+  favTabs.forEach((fav, index) => {
+    const slot = document.createElement('div');
+    slot.className = 'fav-tab-slot';
+    slot.dataset.index = index;
+
+    if (fav.url) {
+      const title = getLiveTitle(fav.url, tabs);
+      slot.title = `${title}\n(Long-press to change URL)`;
+
+      const imgSrc = getFavIconSrc(fav.url, tabs);
+      if (imgSrc) {
+        const img = document.createElement('img');
+        img.src = imgSrc;
+        img.alt = '';
+        img.addEventListener('error', () => {
+          img.remove();
+          const fb = document.createElement('span');
+          fb.className = 'fav-favicon-fallback';
+          fb.textContent = '🌐';
+          slot.appendChild(fb);
+        });
+        slot.appendChild(img);
+      } else {
+        const fb = document.createElement('span');
+        fb.className = 'fav-favicon-fallback';
+        fb.textContent = '🌐';
+        slot.appendChild(fb);
+      }
+    } else {
+      slot.classList.add('fav-empty');
+      slot.title = 'Long-press to set a URL';
+      slot.textContent = '+';
+    }
+
+    favTabsBar.appendChild(slot);
+  });
+}
+
+// Click: activate owned tab by ID, or open a new one and save the ID
+favTabsBar.addEventListener('click', (e) => {
+  if (favLongPressTriggered) return;
+  const slot = e.target.closest('.fav-tab-slot');
+  if (!slot || slot.querySelector('.fav-url-input')) return;
+  const index = parseInt(slot.dataset.index);
+  const fav = favTabs[index];
+  if (!fav?.url) return;
+  chrome.runtime.sendMessage(
+    { type: 'navigateToUrl', url: fav.url, tabId: fav.tabId || null },
+    (response) => {
+      if (response?.tabId && response.tabId !== fav.tabId) {
+        favTabs[index] = { ...fav, tabId: response.tabId };
+        saveFavTabs();
+      }
+    }
+  );
+});
+
+// Long-press: edit slot URL
+let favLongPressTimer = null;
+let favLongPressTriggered = false;
+
+favTabsBar.addEventListener('pointerdown', (e) => {
+  const slot = e.target.closest('.fav-tab-slot');
+  if (!slot) return;
+  favLongPressTriggered = false;
+  favLongPressTimer = setTimeout(() => {
+    favLongPressTriggered = true;
+    startFavEdit(slot);
+  }, 500);
+});
+
+favTabsBar.addEventListener('pointerup', () => clearTimeout(favLongPressTimer));
+favTabsBar.addEventListener('pointerleave', () => clearTimeout(favLongPressTimer));
+
+function startFavEdit(slot) {
+  if (slot.classList.contains('fav-editing')) return;
+  const index = parseInt(slot.dataset.index);
+  const currentUrl = favTabs[index]?.url || '';
+
+  slot.classList.add('fav-editing');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'fav-url-input';
+  input.value = currentUrl;
+  input.placeholder = 'https://...';
+
+  // Position the popup below the slot
+  const rect = slot.getBoundingClientRect();
+  input.style.top = `${rect.bottom + 6}px`;
+  input.style.left = `${Math.max(4, rect.left - 4)}px`;
+
+  document.body.appendChild(input);
+  input.focus();
+  input.select();
+
+  function commit() {
+    const newUrl = input.value.trim();
+    if (newUrl !== currentUrl) {
+      favTabs[index] = { url: newUrl };
+      saveFavTabs();
+      renderFavTabs();
+    } else {
+      slot.classList.remove('fav-editing');
+    }
+    input.remove();
+  }
+
+  input.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+    // Reset to original value so commit() treats it as unchanged (cancel)
+    if (ev.key === 'Escape') { ev.stopPropagation(); input.value = currentUrl; input.blur(); }
+  });
+  input.addEventListener('blur', commit, { once: true });
+}
 
 let currentState = null;
 let collapsedGroups = new Set(); // local UI collapse state (mirrors Chrome's)
@@ -55,10 +219,14 @@ chrome.runtime.sendMessage({ type: 'getState' }, (response) => {
   if (response?.state) {
     currentState = response.state;
     syncCollapsedGroups();
+    syncFavTabIds();
     renderTabs();
+    renderFavTabs();
     restoreCollapsedGroups();
   }
 });
+
+loadFavTabs();
 
 // --- Listen for state updates ---
 
@@ -66,7 +234,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'stateUpdate') {
     currentState = msg.state;
     syncCollapsedGroups();
+    syncFavTabIds();
     renderTabs();
+    renderFavTabs();
   }
 });
 
@@ -76,6 +246,24 @@ function syncCollapsedGroups() {
   collapsedGroups = new Set(
     currentState.groups.filter(g => g.collapsed).map(g => g.id)
   );
+}
+
+// Clear saved tabIds for fav slots whose tab has been closed
+function syncFavTabIds() {
+  if (!currentState) return;
+  const liveIds = new Set(currentState.tabs.map(t => t.id));
+  let changed = false;
+  favTabs.forEach((fav, i) => {
+    if (fav.tabId && !liveIds.has(fav.tabId)) {
+      favTabs[i] = { url: fav.url };
+      changed = true;
+    }
+  });
+  if (changed) saveFavTabs();
+}
+
+function getFavTabIds() {
+  return new Set(favTabs.filter(f => f.tabId).map(f => f.tabId));
 }
 
 // Persist which groups are collapsed by title+color key
@@ -116,12 +304,14 @@ function renderTabs() {
   const { tabs, groups, primaryGroupIds } = currentState;
   const primarySet = new Set(primaryGroupIds);
   const groupMap = new Map(groups.map(g => [g.id, g]));
+  const favTabIds = getFavTabIds();
 
   // Organize tabs: ungrouped first, then by group (preserving tab order)
   const ungrouped = [];
   const groupedTabs = new Map(); // groupId -> tabs[]
 
   for (const tab of tabs) {
+    if (favTabIds.has(tab.id)) continue; // owned by a fav slot — hidden from list
     if (tab.groupId === -1 || tab.groupId === chrome.tabGroups?.TAB_GROUP_ID_NONE) {
       ungrouped.push(tab);
     } else {
