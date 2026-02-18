@@ -4,6 +4,7 @@ A Chrome extension that provides a vertical tab manager with group management in
 
 ## Features
 
+- **Favourite tabs bar** — Pin up to 4 favourite sites as favicon icons across the top of the panel. Each icon owns its tab — clicking always returns to the same tab instance, or opens a new one if it's been closed. Favourite tabs are hidden from the main list so they only ever appear as their icon. Long-press any icon to change its URL.
 - **Vertical tab list** — View all open tabs in a sidebar, organized by group
 - **Tab groups** — Create, rename, collapse/expand, and color-code tab groups
 - **Primary groups** — Mark groups as "primary" to protect them from bulk-close actions
@@ -11,6 +12,7 @@ A Chrome extension that provides a vertical tab manager with group management in
 - **Auto-group by domain** — Automatically group ungrouped tabs by their domain
 - **Drag & drop** — Move tabs between groups or to the ungrouped section
 - **Collapsible panel** — Toggle between full view and icon-only mode; state persists across sessions
+- **Recently closed** — Browse and restore recently closed tabs from a collapsible history section
 - **Search** — Type-to-search filters tabs and groups in real time
 - **Keyboard shortcut** — Open the side panel with a shortcut (customizable)
 - **Dark theme** — Matches Chrome's dark UI
@@ -25,6 +27,12 @@ A Chrome extension that provides a vertical tab manager with group management in
 
 ## Usage
 
+### Favourite tabs bar
+- **Click a favourite icon** to jump to that tab, or open it if it isn't already
+- **Long-press a favourite icon** to edit its URL — press Enter to save, Escape to cancel
+- Favourite tabs are hidden from the main tab list and only appear as icons in the bar
+
+### Tab list
 - **Click a tab** to switch to it
 - **Click a group header** to collapse/expand the group
 - **Long-press a group title** to rename it
