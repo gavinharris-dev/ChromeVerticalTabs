@@ -16,7 +16,7 @@ let selectedColor = 'blue';
 
 let currentState = null;
 let collapsedGroups = new Set(); // local UI collapse state (mirrors Chrome's)
-let historyCollapsed = false;
+let historyCollapsed = true;
 let scrollTop = 0;
 let draggedTabId = null;
 let searchQuery = '';
@@ -56,6 +56,7 @@ chrome.runtime.sendMessage({ type: 'getState' }, (response) => {
     currentState = response.state;
     syncCollapsedGroups();
     renderTabs();
+    restoreCollapsedGroups();
   }
 });
 
@@ -75,6 +76,34 @@ function syncCollapsedGroups() {
   collapsedGroups = new Set(
     currentState.groups.filter(g => g.collapsed).map(g => g.id)
   );
+}
+
+// Persist which groups are collapsed by title+color key
+function saveCollapsedGroupKeys() {
+  if (!currentState) return;
+  const keys = currentState.groups
+    .filter(g => collapsedGroups.has(g.id))
+    .map(g => ({ title: g.title, color: g.color }));
+  chrome.storage.local.set({ collapsedGroupKeys: keys });
+}
+
+// On startup, re-collapse groups that were previously collapsed
+async function restoreCollapsedGroups() {
+  const { collapsedGroupKeys = [] } = await chrome.storage.local.get('collapsedGroupKeys');
+  if (!currentState || collapsedGroupKeys.length === 0) return;
+
+  for (const group of currentState.groups) {
+    const shouldBeCollapsed = collapsedGroupKeys.some(
+      k => k.title === group.title && k.color === group.color
+    );
+    if (shouldBeCollapsed && !group.collapsed) {
+      chrome.runtime.sendMessage({
+        type: 'toggleGroupCollapse',
+        groupId: group.id,
+        collapsed: false,
+      });
+    }
+  }
 }
 
 // --- Rendering ---
@@ -293,6 +322,13 @@ tabList.addEventListener('click', (e) => {
     const groupId = parseInt(groupHeader.dataset.groupId);
     const group = currentState?.groups.find(g => g.id === groupId);
     if (group) {
+      // Optimistically update local state so saveCollapsedGroupKeys sees the new value
+      if (group.collapsed) {
+        collapsedGroups.delete(groupId);
+      } else {
+        collapsedGroups.add(groupId);
+      }
+      saveCollapsedGroupKeys();
       chrome.runtime.sendMessage({
         type: 'toggleGroupCollapse',
         groupId,
